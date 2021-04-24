@@ -42,8 +42,12 @@ geodist(-117,34.6,-119,34.2, units = "km")
 filter(tc_orgs, org == "San Francisco") %>% select(coordinates.lon)
 filter(tc_orgs, org == "San Francisco") %>% select(coordinates.lat)
 
-function(organization, distance){
+tcfilter <- function(organization, distance) {
   lon <- filter(tc_orgs, org == organization) %>% select(coordinates.lon)
   lat <- filter(tc_orgs, org == organization) %>% select(coordinates.lat)
-  
+  tc_orgs <- mutate(distance = geodist(lat, lon, tc_orgs$coordinates.lat, tc_orgs$coordinates.lon, units = "km") * 0.62137119)
+  tc_orgs_filtered <- filter(tc_orgs, distance <= distance)
+  return(tc_orgs_filtered)
 }
+
+tc_orgs_filtered <- tcfilter("san francisco", 75)
