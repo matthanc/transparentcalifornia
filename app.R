@@ -3,6 +3,7 @@ library(readr)
 library(dplyr)
 library(stringr)
 library(scales)
+library(shinythemes)
 
 
 df <- read_csv("C:/Users/Matt/Documents/transparentcalifornia-outreach.csv")
@@ -45,28 +46,45 @@ police_top_positions <- df %>%
     filter(`Total Pay & Benefits` > 0)
 
 ui <-  fluidPage(
-    theme = bslib::bs_theme(bootswatch = "sandstone"),
+    align="center",
+    theme = shinytheme("flatly"),
     titlePanel("Transparent California"),
     fluidRow(
-        selectInput("Organization", "Choose an organization", unique(org_stats$Agency)),
-    ),
-    fluidRow(
-        h3(textOutput("header1"))
-    ),
-    fluidRow(
-        tableOutput("org_stats")
-    ),
-    fluidRow(
-        column(3,
-               tableOutput("top_positions")
-               ),
-        column(9,
-            tableOutput("top_salaries")
+        column(12,
+               selectInput("Organization", "Choose an organization", unique(org_stats$Agency)),
         )
     ),
     fluidRow(
-        h3("Policing Information"),
-        tableOutput("police")
+        column(12,
+               h3(textOutput("header1"))
+        )
+    ),
+    fluidRow(
+        column(12,
+               tableOutput("org_stats")
+        )
+    ),
+    fluidRow(
+        column(12,
+               h4("Top Position & Salary Data")
+        )
+    ),
+    fluidRow(
+        align="center",
+        column(5,
+               align="right",
+               tableOutput("top_positions")
+        ),
+        column(7,
+               align="left",
+               tableOutput("top_salaries")
+        )
+    ),
+    fluidRow(
+        column(12,
+               h4("Police Data"),
+               tableOutput("police")
+        )
     )
 )
 
