@@ -67,7 +67,13 @@ tc_orgs_filtered <- tcfilter("San Francisco", 75)
 
 #Pull employee data from filtered orgs (this will take a few minutes depending on filter)
 df_filtered <- map_dfr(tc_orgs_filtered$url, ~ read_csv(.x) %>%
-                mutate(across(everything(), as.character)))
+                         mutate(across(everything(), as.character)))
+
+#Remove special characters from names
+df_filtered$`Employee Name` <-  iconv(df_filtered$`Employee Name`, from = '', to = 'ASCII//TRANSLIT')
+
+#Remove NA Base Pays
+df_filtered <-  df_filtered %>% filter(!is.na(BasePay))
 
 #Parse employee names with humaniformat package
 df_filtered <- df_filtered %>% mutate(`Employee Name` = format_reverse(df_filtered$`Employee Name`))
@@ -79,17 +85,17 @@ df_filtered <- left_join(df_filtered, read_csv("https://raw.githubusercontent.co
 df_filtered <- df_filtered %>% separate(email, c("emailstructure", "email suffix"), "@")
 df_filtered <- df_filtered %>%
   mutate(email =ifelse(df_filtered$emailstructure == "flast",paste0(substr(df_filtered$first_name,1,1),df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                              ifelse(df_filtered$emailstructure == "firstl",paste0(df_filtered$first_name,substr(df_filtered$last_name,1,1),"@",df_filtered$`email suffix`),
-                                                     ifelse(df_filtered$emailstructure == "first.last",paste0(df_filtered$first_name,".",df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                            ifelse(df_filtered$emailstructure == "firstlast",paste0(df_filtered$first_name,df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                                   ifelse(df_filtered$emailstructure == "fmlast",paste0(substr(df_filtered$first_name,1,1),substr(df_filtered$middle_name,1,1),df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                                          ifelse(df_filtered$emailstructure == "first",paste0(df_filtered$first_name,"@",df_filtered$`email suffix`),
-                                                                                 ifelse(df_filtered$emailstructure == "last",paste0(df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                                                        ifelse(df_filtered$emailstructure == "first_last",paste0(df_filtered$first_name,"_",df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                                                               ifelse(df_filtered$emailstructure == "f(first 4 letters of last)",paste0(substr(df_filtered$first_name,1,1),substr(df_filtered$last_name,1,4),"@",df_filtered$`email suffix`),
-                                                                                                      ifelse(df_filtered$emailstructure == "filast",paste0(substr(df_filtered$first_name,1,2),df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                                                                             ifelse(df_filtered$emailstructure == "lastfirst",paste0(df_filtered$first_name,df_filtered$last_name,"@",df_filtered$`email suffix`),
-                                                                                                                    ""))))))))))))
+                       ifelse(df_filtered$emailstructure == "firstl",paste0(df_filtered$first_name,substr(df_filtered$last_name,1,1),"@",df_filtered$`email suffix`),
+                              ifelse(df_filtered$emailstructure == "first.last",paste0(df_filtered$first_name,".",df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                     ifelse(df_filtered$emailstructure == "firstlast",paste0(df_filtered$first_name,df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                            ifelse(df_filtered$emailstructure == "fmlast",paste0(substr(df_filtered$first_name,1,1),substr(df_filtered$middle_name,1,1),df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                                   ifelse(df_filtered$emailstructure == "first",paste0(df_filtered$first_name,"@",df_filtered$`email suffix`),
+                                                          ifelse(df_filtered$emailstructure == "last",paste0(df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                                                 ifelse(df_filtered$emailstructure == "first_last",paste0(df_filtered$first_name,"_",df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                                                        ifelse(df_filtered$emailstructure == "f(first 4 letters of last)",paste0(substr(df_filtered$first_name,1,1),substr(df_filtered$last_name,1,4),"@",df_filtered$`email suffix`),
+                                                                               ifelse(df_filtered$emailstructure == "filast",paste0(substr(df_filtered$first_name,1,2),df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                                                                      ifelse(df_filtered$emailstructure == "lastfirst",paste0(df_filtered$first_name,df_filtered$last_name,"@",df_filtered$`email suffix`),
+                                                                                             ""))))))))))))
 df_filtered$email <- tolower(df_filtered$email)
 
 
