@@ -69,11 +69,23 @@ tc_orgs_filtered <- tcfilter("San Francisco", 75)
 df_filtered <- map_dfr(tc_orgs_filtered$url, ~ read_csv(.x) %>%
                          mutate(across(everything(), as.character)))
 
-#Remove special characters from names
+#Remove special characters from names and job titles
 df_filtered$`Employee Name` <-  iconv(df_filtered$`Employee Name`, from = '', to = 'ASCII//TRANSLIT')
+df_filtered$`Job Title` <-  iconv(df_filtered$`Job Title`, from = '', to = 'ASCII//TRANSLIT')
 
-#Remove NA Base Pays
-df_filtered <-  df_filtered %>% filter(!is.na(BasePay))
+#Remove NA Base Pays and convert pay from num to int
+df_filtered <-  df_filtered %>% filter(!is.na(`Base Pay`))
+df_filtered[4:10] <- lapply(df_filtered[4:10], as.integer)
+
+#Determine if full-time or part-time employee
+df_filtered <- df_filtered %>%
+  mutate(full_time = ifelse(`Total Pay` >= 25000 & Benefits > 0, "Yes","No"))
+
+#Filter agencies with less than 50 employees
+df_filtered <- df_filtered %>%
+  group_by(Agency) %>%
+  filter(n() > 50) %>%
+  ungroup()
 
 #Parse employee names with humaniformat package
 df_filtered <- df_filtered %>% mutate(`Employee Name` = format_reverse(df_filtered$`Employee Name`))
