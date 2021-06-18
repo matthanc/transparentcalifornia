@@ -19,7 +19,7 @@ df_filtered$BasePay <- as.integer(df_filtered$BasePay)
 #shiny server ui
 ui <-  fluidPage(
   align="center",
-  # theme = shinytheme("spacelab"),
+  theme = shinytheme("spacelab"),
   br(),
   titlePanel("Transparent California Outreach Tool"),
   br(),
