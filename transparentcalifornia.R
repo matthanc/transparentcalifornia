@@ -28,8 +28,8 @@ tcfilter <- function(organization, filterdist) {
   #Clean attribute data from both sites (for urls later)
   tc_url1 <- substr(tc_url1,16,100)
   tc_url2 <- substr(tc_url2,16,100)
-  tc_url1 <- as.tibble(tc_url1)
-  tc_url2 <- as.tibble(tc_url2)
+  tc_url1 <- as_tibble(tc_url1)
+  tc_url2 <- as_tibble(tc_url2)
   tc_url1 <- unique(tc_url1)
   tc_url2 <- unique(tc_url2)
   tc_url1 <- tc_url1 %>% mutate(href = gsub("/", "", tc_url1$href))
@@ -63,7 +63,7 @@ tcfilter <- function(organization, filterdist) {
 }
 
 #Function to filter by distance in miles. Org name must match name on Transparent California
-tc_orgs_filtered <- tcfilter("San Francisco", 75)
+tc_orgs_filtered <- tcfilter("San Francisco", 9999)
 
 tcfilter_csv <- function(tc_orgs_filtered) {
   
@@ -122,3 +122,5 @@ tcfilter_csv <- function(tc_orgs_filtered) {
 
 #Run function for filtered data
 df_filtered <- tcfilter_csv(tc_orgs_filtered)
+
+
