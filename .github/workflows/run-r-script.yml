@@ -2,7 +2,7 @@ name: Run TransparentCalifornia Scraper
 
 on:
   schedule:
-    - cron: '0 0 1 1,4,7,10 *' # Runs at 00:00 on Jan 1, Apr 1, Jul 1, Oct 1
+    - cron: '0 0 1 1,4,7,10 *'
   workflow_dispatch:
 
 jobs:
@@ -10,20 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-    - name: Set up R
-      uses: r-lib/actions/setup-r@v2
+    - uses: r-lib/actions/setup-r@v2
 
-    - name: Install R dependencies
+    - name: Install R dependencies (with explicit versions & retries)
       run: |
-        Rscript -e 'install.packages("remotes")'
-        Rscript -e 'remotes::install_cran(c("xml2", "rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))'
+          attempt=0
+          max_attempts=3
+          while [ $attempt -lt $max_attempts ]; do
+            Rscript -e 'install.packages("remotes")' && \
+            Rscript -e 'remotes::install_cran(c("xml2" = "1.3.3", "rvest" = "1.0.3", "tidyverse", "lubridate", "gmt", "humaniformat"))' && \
+            break  # Exit the loop if successful
+            attempt=$((attempt+1))
+            echo "Installation failed, retrying in 30 seconds (attempt $attempt/$max_attempts)..."
+            sleep 30
+          done
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Installation failed after $max_attempts attempts. Exiting with error."
+            exit 1
+          fi
+
+    - name: Print installed packages
+      run: Rscript -e 'print(installed.packages()[,c("Package", "Version")])'
 
     - name: Run R script
-      run: |
-        Rscript transparentcalifornia.R
+      run: Rscript transparentcalifornia.R
 
     - name: Configure Git
       run: |
