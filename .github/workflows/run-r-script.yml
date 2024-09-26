@@ -15,21 +15,23 @@ jobs:
     - uses: r-lib/actions/setup-r@v2
 
     - name: Install R dependencies (with retries)
+      shell: pwsh # Use PowerShell
       run: |
-          attempt=0
-          max_attempts=3
-          while [ $attempt -lt $max_attempts ]; do
-            Rscript -e 'install.packages("remotes")' && \
-            Rscript -e 'remotes::install_cran(c("httr", "xml2", "rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))' && \
-            break  # Exit the loop if successful
-            attempt=$((attempt+1))
-            echo "Installation failed, retrying in 30 seconds (attempt $attempt/$max_attempts)..."
-            sleep 30
-          done
-          if [ $attempt -eq $max_attempts ]; then
-            echo "Installation failed after $max_attempts attempts. Exiting with error."
+          $attempt = 0
+          $max_attempts = 3
+          while ($attempt -lt $max_attempts) {
+            Rscript -e 'install.packages("remotes")' 
+            if ($?) { break } # Exit loop if successful
+            Rscript -e 'remotes::install_cran(c("httr", "xml2", "rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))' 
+            if ($?) { break } # Exit loop if successful
+            $attempt++
+            Write-Output "Installation failed, retrying in 30 seconds (attempt $attempt/$max_attempts)..."
+            Start-Sleep -Seconds 30
+          }
+          if ($attempt -eq $max_attempts) {
+            Write-Output "Installation failed after $max_attempts attempts. Exiting with error."
             exit 1
-          fi
+          }
 
     - name: Print installed packages
       run: Rscript -e 'print(installed.packages()[,c("Package", "Version")])'
