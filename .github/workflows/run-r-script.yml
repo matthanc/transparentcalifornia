@@ -25,7 +25,7 @@ jobs:
           max_attempts=3
           while [ $attempt -lt $max_attempts ]; do
             Rscript -e 'install.packages("remotes")' && \
-            Rscript -e 'remotes::install_cran(c("xml2", "rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))' && \
+            Rscript -e 'remotes::install_cran(c("httr", "xml2", "rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))' && \
             break  # Exit the loop if successful
             attempt=$((attempt+1))
             echo "Installation failed, retrying in 30 seconds (attempt $attempt/$max_attempts)..."
