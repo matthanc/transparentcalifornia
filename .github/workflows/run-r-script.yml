@@ -2,7 +2,7 @@ name: Run TransparentCalifornia Scraper
 
 on:
   schedule:
-    - cron: '0 0 1 1,4,7,10 *'
+    - cron: '0 0 1 1,4,7,10 *' # Runs at 00:00 on Jan 1, Apr 1, Jul 1, Oct 1
   workflow_dispatch:
 
 jobs:
@@ -18,8 +18,20 @@ jobs:
 
     - name: Install R dependencies
       run: |
-        Rscript -e 'install.packages(c("rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))'
+        Rscript -e 'install.packages("remotes")'
+        Rscript -e 'remotes::install_cran(c("rvest", "tidyverse", "lubridate", "gmt", "humaniformat"))'
 
     - name: Run R script
       run: |
         Rscript transparentcalifornia.R
+
+    - name: Configure Git
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
+
+    - name: Commit and push changes
+      run: |
+        git add output/california_data.rds
+        git commit -m "Update data"
+        git push
