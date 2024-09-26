@@ -65,7 +65,7 @@ tcfilter <- function(organization, filterdist) {
 #Function to filter by distance in miles. Org name must match name on Transparent California
 tc_orgs_filtered <- tcfilter("San Francisco", 9999)
 
-tcfilter_csv <- function(tc_orgs_filtered) {
+tcfilter_rds <- function(tc_orgs_filtered) {
   
   #Pull employee data from filtered orgs (this will take a few minutes depending on filter)
   df_filtered <- map_dfr(tc_orgs_filtered$url, ~ read_csv(.x) %>%
@@ -114,13 +114,11 @@ tcfilter_csv <- function(tc_orgs_filtered) {
   
   
   
-  #Export to data csv file named transparentcalifornia-outreach.csv
-  write.csv(df_filtered, file = "transparentcalifornia-outreach.csv")
+  #Export to RDS file named transparentcalifornia-outreach.rds
+  saveRDS(df_filtered, file = "output/transparentcalifornia-outreach.rds")
   
   return(df_filtered)
 }
 
 #Run function for filtered data
-df_filtered <- tcfilter_csv(tc_orgs_filtered)
-
-
+df_filtered <- tcfilter_rds(tc_orgs_filtered)
