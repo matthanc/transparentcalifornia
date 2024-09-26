@@ -32,6 +32,6 @@ jobs:
 
     - name: Commit and push changes
       run: |
-        git add output/california_data.rds
+        git add output/transparentcalifornia-outreach.rds
         git commit -m "Update data"
         git push
