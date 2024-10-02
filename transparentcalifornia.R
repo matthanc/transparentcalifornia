@@ -2,7 +2,7 @@ library(rvest) #for webs scraping
 library(tidyverse) #for tidy code
 library(lubridate) #for date manipulation
 #library(ggmap) used to get coordinates - no longer needed
-library(gmt) #to calcualate distances between coordinates
+library(geosphere) #to calcualate distances between coordinates
 library(humaniformat) #to parse names
 
 # The purpose of the below function is to filter the Transparent California organizations by distance (in miles) from a specific/specified organization
@@ -55,8 +55,9 @@ tcfilter <- function(organization, filterdist) {
   tc_orgs <- inner_join(tc_orgs, read_csv("https://raw.githubusercontent.com/matthanc/transparentcalifornia/main/coords.csv"), by = "org")
   lon <- as.numeric(filter(tc_orgs, org == organization) %>% select(coordinates.lon))
   lat <- as.numeric(filter(tc_orgs, org == organization) %>% select(coordinates.lat))
-  tc_orgs_filtered <- tc_orgs %>% mutate(distance = geodist(lat, lon, tc_orgs$coordinates.lat, tc_orgs$coordinates.lon, units = "km") * 0.62137119) %>%
-    filter(distance <= filterdist)
+  tc_orgs_filtered <- tc_orgs %>% 
+  mutate(distance = distHaversine(c(lon, lat), cbind(coordinates.lon, coordinates.lat)) * 0.000621371) %>%
+  filter(distance <= filterdist)
   
   #return filtered orgs
   return(tc_orgs_filtered)
