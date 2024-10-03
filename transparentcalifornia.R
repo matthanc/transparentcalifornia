@@ -1,9 +1,14 @@
-library(rvest) #for webs scraping
-library(tidyverse) #for tidy code
-library(lubridate) #for date manipulation
-#library(ggmap) used to get coordinates - no longer needed
-library(geosphere) #to calcualate distances between coordinates
-library(humaniformat) #to parse names
+library(rvest)         # for web scraping
+library(dplyr)         # for data manipulation
+library(purrr)         # for functional programming
+library(stringr)       # for string operations
+library(readr)         # for reading data
+library(tidyr)         # for tidying data
+library(tibble)        # for tibbles
+library(lubridate)     # for date manipulation
+library(geosphere)     # to calculate distances between coordinates
+library(humaniformat)  # to parse names
+
 
 # The purpose of the below function is to filter the Transparent California organizations by distance (in miles) from a specific/specified organization
 
