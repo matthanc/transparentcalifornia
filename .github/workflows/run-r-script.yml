@@ -17,11 +17,13 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev \
+                            libfontconfig1-dev libcairo2-dev libxt-dev \
+                            libharfbuzz-dev libfribidi-dev libfreetype6-dev
 
     - name: Install R packages
       run: |
-        Rscript -e 'install.packages(c("httr", "xml2", "rvest", "tidyverse", "lubridate", "geosphere", "humaniformat"), dependencies=TRUE)'
+        Rscript -e 'install.packages(c("httr", "xml2", "rvest", "dplyr", "purrr", "stringr", "readr", "tidyr", "tibble", "lubridate", "geosphere", "humaniformat"), dependencies=TRUE)'
 
     - name: Print installed packages
       run: Rscript -e 'print(installed.packages()[,c("Package", "Version")])'
