@@ -7,7 +7,7 @@ library(scales)
 
 
 #Load data
-df <- read_csv("transparentcalifornia-outreach.csv")
+df <- readRDS("transparentcalifornia-outreach.rds")
 
 
 df_filtered <- df %>%
@@ -46,12 +46,10 @@ server <- function(input, output, session) {
   datasetInput1 <- reactive({
     df_filtered$Title <- str_to_title(df_filtered$Title)
     reactivedata <- df_filtered
-    if (is.character(input$Title)) {
+    if (is.character(input$Title) && nchar(input$Title) > 0) {
       reactivedata <- reactivedata %>%
-        #filter(str_detect(Title, fixed(input$Title, ignore_case=TRUE)))
         filter(str_detect(Title, str_to_title(input$Title)))
     }
-    reactivedata <- reactivedata
     return(reactivedata)
   })
   
