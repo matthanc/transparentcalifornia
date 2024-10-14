@@ -9,6 +9,10 @@ library(lubridate)     # for date manipulation
 library(geosphere)     # to calculate distances between coordinates
 library(humaniformat)  # to parse names
 
+# Ensure the 'output' directory exists
+if (!dir.exists("output")) {
+  dir.create("output")
+}
 
 # The purpose of the below function is to filter the Transparent California organizations by distance (in miles) from a specific/specified organization
 
@@ -117,7 +121,6 @@ tcfilter_rds <- function(tc_orgs_filtered) {
                                                                                         ifelse(df_filtered$emailstructure == "lastfirst",paste0(df_filtered$first_name,df_filtered$last_name,"@",df_filtered$`email suffix`),
                                                                                                ""))))))))))))
   df_filtered$email <- tolower(df_filtered$email)
-  
   
   
   #Export to RDS file named transparentcalifornia-outreach.rds
