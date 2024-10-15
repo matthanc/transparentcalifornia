@@ -1,4 +1,4 @@
-name: Run TransparentCalifornia Scraper
+name: Run TransparentCalifornia Scraper and Deploy Shiny App
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Ubuntu runner handles system dependencies better
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -17,16 +17,11 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev \
-                            libfontconfig1-dev libcairo2-dev libxt-dev \
-                            libharfbuzz-dev libfribidi-dev libfreetype6-dev
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
     - name: Install R packages
       run: |
-        Rscript -e 'install.packages(c("httr", "xml2", "rvest", "dplyr", "purrr", "stringr", "readr", "tidyr", "tibble", "lubridate", "geosphere", "humaniformat"), dependencies=TRUE)'
-
-    - name: Print installed packages
-      run: Rscript -e 'print(installed.packages()[,c("Package", "Version")])'
+        Rscript -e 'install.packages(c("httr", "xml2", "rvest", "dplyr", "purrr", "stringr", "readr", "tidyr", "tibble", "lubridate", "geosphere", "humaniformat", "rsconnect"), dependencies=TRUE)'
 
     - name: Run R script
       run: Rscript transparentcalifornia.R
@@ -41,3 +36,16 @@ jobs:
         git add output/transparentcalifornia-outreach.rds
         git commit -m "Update data"
         git push
+      continue-on-error: true  # In case there are no changes to commit
+
+    - name: Deploy Shiny App to shinyapps.io
+      env:
+        SHINYAPPSIO_TOKEN: ${{ secrets.SHINYAPPSIO_TOKEN }}
+        SHINYAPPSIO_SECRET: ${{ secrets.SHINYAPPSIO_SECRET }}
+        SHINYAPPSIO_ACCOUNT: ${{ secrets.SHINYAPPSIO_ACCOUNT }}
+      run: |
+        Rscript -e "
+          library(rsconnect);
+          rsconnect::setAccountInfo(name=Sys.getenv('SHINYAPPSIO_ACCOUNT'), token=Sys.getenv('SHINYAPPSIO_TOKEN'), secret=Sys.getenv('SHINYAPPSIO_SECRET'));
+          rsconnect::deployApp(appFiles=c('app.R', 'transparentcalifornia-outreach.rds'), appName='your-app-name', account=Sys.getenv('SHINYAPPSIO_ACCOUNT'), forceUpdate=TRUE)
+        "
