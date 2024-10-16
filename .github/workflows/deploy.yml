@@ -19,7 +19,7 @@ jobs:
 
     - name: Install R packages
       run: |
-        Rscript -e 'install.packages(c("shiny", "tidyverse", "shinythemes", "DT", "shinyWidgets", "scales", "rsconnect"), dependencies=TRUE)'
+        Rscript -e 'install.packages(c("shiny", "dplyr", "tidyverse", "shinythemes", "DT", "shinyWidgets", "scales", "rsconnect"), dependencies=TRUE)'
 
     - name: Deploy Shiny App to shinyapps.io
       env:
@@ -29,9 +29,13 @@ jobs:
       run: |
         Rscript -e "
           library(rsconnect);
-          rsconnect::setAccountInfo(name=Sys.getenv('SHINYAPPSIO_ACCOUNT'), token=Sys.getenv('SHINYAPPSIO_TOKEN'), secret=Sys.getenv('SHINYAPPSIO_SECRET'));
+          rsconnect::setAccountInfo(
+            name=Sys.getenv('SHINYAPPSIO_ACCOUNT'), 
+            token=Sys.getenv('SHINYAPPSIO_TOKEN'), 
+            secret=Sys.getenv('SHINYAPPSIO_SECRET')
+          );
           rsconnect::deployApp(
-            appFiles = c('app.R', 'transparentcalifornia-outreach.rds'),
+            appFiles = c('app.R', 'output/transparentcalifornia-outreach.rds'),
             appName = 'your-app-name',
             account = Sys.getenv('SHINYAPPSIO_ACCOUNT'),
             forceUpdate = TRUE
