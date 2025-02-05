@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-    - uses: r-lib/actions/setup-r@v2
+    - name: Setup R environment
+      uses: r-lib/actions/setup-r@v2
 
     - name: Install system dependencies
       run: |
@@ -23,20 +25,25 @@ jobs:
       run: |
         Rscript -e 'install.packages(c("httr", "xml2", "rvest", "dplyr", "purrr", "stringr", "readr", "tidyr", "tibble", "lubridate", "geosphere", "humaniformat", "rsconnect"), dependencies=TRUE)'
 
-    - name: Run R script
+    - name: Install Bioconductor package Biobase
+      run: |
+        Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
+        Rscript -e 'BiocManager::install("Biobase")'
+
+    - name: Run TransparentCalifornia Scraper
       run: Rscript transparentcalifornia.R
 
     - name: Configure Git
       run: |
-        git config --global user.name 'github-actions'
-        git config --global user.email 'github-actions@github.com'
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
 
-    - name: Commit and push changes
+    - name: Commit and push updated data
       run: |
         git add output/transparentcalifornia-outreach.rds
-        git commit -m "Update data"
+        git commit -m "Update underlying data via scraper" || echo "No changes to commit"
         git push
-      continue-on-error: true  # In case there are no changes to commit
+      continue-on-error: true
 
     - name: Deploy Shiny App to shinyapps.io
       env:
@@ -46,6 +53,15 @@ jobs:
       run: |
         Rscript -e "
           library(rsconnect);
-          rsconnect::setAccountInfo(name=Sys.getenv('SHINYAPPSIO_ACCOUNT'), token=Sys.getenv('SHINYAPPSIO_TOKEN'), secret=Sys.getenv('SHINYAPPSIO_SECRET'));
-          rsconnect::deployApp(appFiles=c('app.R', 'transparentcalifornia-outreach.rds'), appName='your-app-name', account=Sys.getenv('SHINYAPPSIO_ACCOUNT'), forceUpdate=TRUE)
+          rsconnect::setAccountInfo(
+            name = Sys.getenv('SHINYAPPSIO_ACCOUNT'),
+            token = Sys.getenv('SHINYAPPSIO_TOKEN'),
+            secret = Sys.getenv('SHINYAPPSIO_SECRET')
+          );
+          rsconnect::deployApp(
+            appFiles = c('app.R', 'output/transparentcalifornia-outreach.rds'),
+            appName = 'your-app-name',
+            account = Sys.getenv('SHINYAPPSIO_ACCOUNT'),
+            forceUpdate = TRUE
+          )
         "
