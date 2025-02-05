@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: r-lib/actions/setup-r@v2
 
@@ -21,6 +21,11 @@ jobs:
       run: |
         Rscript -e 'install.packages(c("shiny", "dplyr", "tidyverse", "shinythemes", "DT", "shinyWidgets", "scales", "rsconnect"), dependencies=TRUE)'
 
+    - name: Install Bioconductor package Biobase
+      run: |
+        Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
+        Rscript -e 'BiocManager::install("Biobase")'
+
     - name: Deploy Shiny App to shinyapps.io
       env:
         SHINYAPPSIO_TOKEN: ${{ secrets.SHINYAPPSIO_TOKEN }}
@@ -30,9 +35,9 @@ jobs:
         Rscript -e "
           library(rsconnect);
           rsconnect::setAccountInfo(
-            name=Sys.getenv('SHINYAPPSIO_ACCOUNT'), 
-            token=Sys.getenv('SHINYAPPSIO_TOKEN'), 
-            secret=Sys.getenv('SHINYAPPSIO_SECRET')
+            name = Sys.getenv('SHINYAPPSIO_ACCOUNT'),
+            token = Sys.getenv('SHINYAPPSIO_TOKEN'),
+            secret = Sys.getenv('SHINYAPPSIO_SECRET')
           );
           rsconnect::deployApp(
             appFiles = c('app.R', 'output/transparentcalifornia-outreach.rds'),
