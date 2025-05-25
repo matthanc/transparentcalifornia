@@ -1,0 +1,260 @@
+name: Reusable R Workflow Executor
+
+on:
+  workflow_call:
+    inputs:
+      r-version:
+        description: 'Version of R to use'
+        required: false
+        type: string
+        default: 'release'
+      r-packages:
+        description: 'Comma-separated string of R packages to install (e.g., ''pkg1'',''pkg2'')'
+        required: true
+        type: string
+      run-script-path:
+        description: 'Path to an R script to run after setup'
+        required: false
+        type: string
+      do-git-create-pr: # Changed from do-git-commit-push
+        description: 'Whether to commit data to a new branch and create a PR'
+        required: false
+        type: boolean
+        default: false
+      git-commit-files:
+        description: 'Files to add for git commit (space separated)'
+        required: false
+        type: string
+        default: 'output/transparentcalifornia-outreach.rds'
+      git-commit-message:
+        description: 'Commit message for git (will also be part of PR title)'
+        required: false
+        type: string
+        default: 'Automated data update' # Simplified default
+      git-user-name:
+        description: 'Git user name for commit'
+        required: false
+        type: string
+        default: 'github-actions[bot]'
+      git-user-email:
+        description: 'Git user email for commit'
+        required: false
+        type: string
+        default: 'github-actions[bot]@users.noreply.github.com'
+      pr-title:
+        description: 'Title for the Pull Request'
+        required: false
+        type: string
+        default: 'Automated Data Update'
+      pr-body:
+        description: 'Body for the Pull Request'
+        required: false
+        type: string
+        default: 'Automated data update. Please review and merge.'
+      pr-base-branch:
+        description: 'Base branch for the Pull Request'
+        required: false
+        type: string
+        default: 'main'
+      do-shiny-deploy:
+        description: 'Whether to deploy a Shiny app (from current checkout, typically main branch)'
+        required: false
+        type: boolean
+        default: false
+      shiny-app-files: 
+        description: 'Files for Shiny app deployment (space separated)'
+        required: false
+        type: string
+        default: 'app.R output/transparentcalifornia-outreach.rds'
+      shiny-app-name:
+        description: 'Name of the Shiny app'
+        required: false
+        type: string
+        default: 'shinyapp'
+    secrets:
+      github-token: # Using GITHUB_TOKEN by default for gh CLI and checkout/push
+        required: true # Explicitly require GITHUB_TOKEN for gh and git operations
+      shinyappsio-account:
+        required: false
+      shinyappsio-token:
+        required: false
+      shinyappsio-secret:
+        required: false
+
+jobs:
+  execute_r_workflow:
+    runs-on: ubuntu-latest
+    # Permissions will be inherited from the calling workflow.
+    # The calling workflow needs to set:
+    # permissions:
+    #   contents: write
+    #   pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.github-token }} # Use GITHUB_TOKEN passed from caller
+
+      - name: Setup R environment
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ inputs.r-version }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Install R packages
+        if: inputs.r-packages != ''
+        run: |
+          Rscript -e "install.packages(c(${{ inputs.r-packages }}), dependencies=TRUE, Ncpus = 2, quiet = TRUE)"
+
+      - name: Install Bioconductor package Biobase
+        run: |
+          Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager", Ncpus = 2, quiet = TRUE)'
+          Rscript -e 'BiocManager::install("Biobase", update=FALSE, ask=FALSE, Ncpus = 2, quiet = TRUE)'
+
+      - name: Run R Script
+        if: inputs.run-script-path != ''
+        run: Rscript ${{ inputs.run-script-path }}
+
+      - name: Create new branch, commit, push, and create PR
+        if: inputs.do-git-create-pr == true
+        env:
+          GH_TOKEN: ${{ secrets.github-token }} # gh CLI uses GITHUB_TOKEN or GH_TOKEN
+        run: |
+          git config --global user.name "${{ inputs.git-user-name }}"
+          git config --global user.email "${{ inputs.git-user-email }}"
+          
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="data-update/$TIMESTAMP"
+          
+          echo "Creating new branch: $BRANCH_NAME"
+          git checkout -b $BRANCH_NAME
+          
+          echo "Adding files: ${{ inputs.git-commit-files }}"
+          git add ${{ inputs.git-commit-files }}
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit. Skipping PR creation."
+          else
+            echo "Committing changes..."
+            git commit -m "${{ inputs.git-commit-message }} ($TIMESTAMP)"
+            
+            echo "Pushing branch $BRANCH_NAME..."
+            git push origin $BRANCH_NAME
+            
+            echo "Creating Pull Request..."
+            gh pr create \
+              --title "${{ inputs.pr-title }} ($TIMESTAMP)" \
+              --body "${{ inputs.pr-body }}" \
+              --base "${{ inputs.pr-base-branch }}" \
+              --head "$BRANCH_NAME"
+            echo "Pull Request created."
+          fi
+
+      - name: Deploy Shiny App to shinyapps.io (from current branch - usually main)
+        if: inputs.do-shiny-deploy == true && secrets.shinyappsio-token != null && secrets.shinyappsio-secret != null && secrets.shinyappsio-account != null
+        env:
+          SHINYAPPSIO_TOKEN: ${{ secrets.shinyappsio-token }}
+          SHINYAPPSIO_SECRET: ${{ secrets.shinyappsio-secret }}
+          SHINYAPPSIO_ACCOUNT: ${{ secrets.shinyappsio-account }}
+        run: |
+          APP_FILES_R_FORMAT=$(echo "${{ inputs.shiny-app-files }}" | sed "s/ /,/g" | sed "s/\([^,]\+\)/'\1'/g")
+          echo "Deploying app files: $APP_FILES_R_FORMAT for app name: ${{ inputs.shiny-app-name }}"
+          Rscript -e " \
+            if (!require('rsconnect')) install.packages('rsconnect', Ncpus = 2, quiet = TRUE); \
+            library(rsconnect); \
+            rsconnect::setAccountInfo( \
+              name = Sys.getenv('SHINYAPPSIO_ACCOUNT'), \
+              token = Sys.getenv('SHINYAPPSIO_TOKEN'), \
+              secret = Sys.getenv('SHINYAPPSIO_SECRET') \
+            ); \
+            rsconnect::deployApp( \
+              appFiles = c($APP_FILES_R_FORMAT), \
+              appName = '${{ inputs.shiny-app-name }}', \
+              account = Sys.getenv('SHINYAPPSIO_ACCOUNT'), \
+              forceUpdate = TRUE \
+            ) \
+          "
+    outputs:
+      status:
+        description: "Status of the execution"
+        value: ${{ job.status }}
+      branch_name:
+        description: "Name of the created branch if PR was created"
+        value: ${{ steps.create_pr_step.outputs.branch_name }} # This needs an id on the step
+      pr_url:
+        description: "URL of the created PR"
+        value: ${{ steps.create_pr_step.outputs.pr_url }} # This needs an id on the step
+# Note: Outputting branch_name and pr_url from a shell script step requires `echo "::set-output name=branch_name::$BRANCH_NAME"`
+# I will add that to the script block.
+---
+# Re-applying the script block with set-output for branch_name and pr_url.
+# The previous run was just to get the YAML structure right.
+# I'll refine the git operations step.
+
+# Corrected structure for the git operations step:
+      - name: Create new branch, commit, push, and create PR
+        id: create_pr_step # Added id for outputs
+        if: inputs.do-git-create-pr == true
+        env:
+          GH_TOKEN: ${{ secrets.github-token }}
+        run: |
+          git config --global user.name "${{ inputs.git-user-name }}"
+          git config --global user.email "${{ inputs.git-user-email }}"
+          
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="data-update/$TIMESTAMP"
+          echo "::set-output name=branch_name::$BRANCH_NAME"
+          
+          echo "Creating new branch: $BRANCH_NAME"
+          git checkout -b $BRANCH_NAME
+          
+          echo "Adding files: ${{ inputs.git-commit-files }}"
+          # Ensure files are correctly quoted if they contain spaces, though git-commit-files is space separated
+          git add ${{ inputs.git-commit-files }}
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit. Skipping PR creation."
+            echo "::set-output name=pr_url::" # Output empty PR URL
+          else
+            echo "Committing changes..."
+            git commit -m "${{ inputs.git-commit-message }} ($TIMESTAMP)"
+            
+            echo "Pushing branch $BRANCH_NAME..."
+            git push origin $BRANCH_NAME
+            
+            echo "Creating Pull Request..."
+            # Create PR and capture its URL
+            PR_URL=$(gh pr create \
+              --title "${{ inputs.pr-title }} ($TIMESTAMP)" \
+              --body "${{ inputs.pr-body }}" \
+              --base "${{ inputs.pr-base-branch }}" \
+              --head "$BRANCH_NAME")
+            
+            if [ -n "$PR_URL" ]; then
+              echo "Pull Request created: $PR_URL"
+              echo "::set-output name=pr_url::$PR_URL"
+            else
+              echo "Failed to create Pull Request."
+              echo "::set-output name=pr_url::" # Output empty PR URL
+            fi
+          fi
+# The rest of the file (shiny deploy, outputs block) remains the same.
+# The main "outputs" block for the job needs to reference these step outputs.
+# So the final outputs block for the job should be:
+#    outputs:
+#      status:
+#        description: "Status of the execution"
+#        value: ${{ job.status }}
+#      branch_name:
+#        description: "Name of the created branch if PR was created"
+#        value: ${{ steps.create_pr_step.outputs.branch_name }}
+#      pr_url:
+#        description: "URL of the created PR"
+#        value: ${{ steps.create_pr_step.outputs.pr_url }}
+
+# I will apply the full file content now.
