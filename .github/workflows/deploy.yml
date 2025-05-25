@@ -4,45 +4,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - uses: r-lib/actions/setup-r@v2
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-
-    - name: Install R packages
-      run: |
-        Rscript -e 'install.packages(c("shiny", "dplyr", "tidyverse", "shinythemes", "DT", "shinyWidgets", "scales", "rsconnect"), dependencies=TRUE)'
-
-    - name: Install Bioconductor package Biobase
-      run: |
-        Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
-        Rscript -e 'BiocManager::install("Biobase")'
-
-    - name: Deploy Shiny App to shinyapps.io
-      env:
-        SHINYAPPSIO_TOKEN: ${{ secrets.SHINYAPPSIO_TOKEN }}
-        SHINYAPPSIO_SECRET: ${{ secrets.SHINYAPPSIO_SECRET }}
-        SHINYAPPSIO_ACCOUNT: ${{ secrets.SHINYAPPSIO_ACCOUNT }}
-      run: |
-        Rscript -e "
-          library(rsconnect);
-          rsconnect::setAccountInfo(
-            name = Sys.getenv('SHINYAPPSIO_ACCOUNT'),
-            token = Sys.getenv('SHINYAPPSIO_TOKEN'),
-            secret = Sys.getenv('SHINYAPPSIO_SECRET')
-          );
-          rsconnect::deployApp(
-            appFiles = c('app.R', 'output/transparentcalifornia-outreach.rds'),
-            appName = 'your-app-name',
-            account = Sys.getenv('SHINYAPPSIO_ACCOUNT'),
-            forceUpdate = TRUE
-          )
-        "
+  deploy_app:
+    uses: ./.github/workflows/setup-r-env.yml
+    with:
+      r-version: 'release' # Or specify a version
+      r-packages: "'shiny','dplyr','tidyverse','shinythemes','DT','shinyWidgets','scales','rsconnect'"
+      # run-script-path: not needed for this workflow
+      # do-git-commit-push: false (default)
+      do-shiny-deploy: true
+      shiny-app-files: 'app.R output/transparentcalifornia-outreach.rds' # Space separated
+      shiny-app-name: 'your-app-name' # Matches original
+    secrets:
+      shinyappsio-account: ${{ secrets.SHINYAPPSIO_ACCOUNT }}
+      shinyappsio-token: ${{ secrets.SHINYAPPSIO_TOKEN }}
+      shinyappsio-secret: ${{ secrets.SHINYAPPSIO_SECRET }}
