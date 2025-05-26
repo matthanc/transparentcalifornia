@@ -138,7 +138,4 @@ Currently, this project is maintained by a small team. However, if you have sugg
 
 ## License
 
-(Assuming MIT License - if different, this should be updated. The original README did not specify a license. A `LICENSE` file should ideally be present in the repository.)
-
 This project is licensed under the MIT License. See the `LICENSE` file for details.
-(If no LICENSE file exists, consider adding one. For now, this is a placeholder.)
